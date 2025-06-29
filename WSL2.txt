@@ -1,0 +1,113 @@
+https://docs.microsoft.com/zh-cn/windows/wsl/install-win10
+https://github.com/microsoft/WSL/releases
+
+安装 WSL 组件：“适用于 Linux 的 Windows 子系统”和“虚拟机平台”
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+Win11还要添加“Windows 虚拟机监控程序平台”
+dism.exe /online /enable-feature /featurename:HypervisorPlatform /all /norestart
+  
+配置默认 WSL2 版本（若出现错误，请先安装最新的wsl2程序，如：wsl.2.0.12.0.x64.msi，安装后最后重启）
+wsl --set-default-version 2
+
+安装 Ubuntu
+wsl --install -d Ubuntu --web-download  // --web-download 可选，指从互联网而不是 Microsoft 商店下载更新
+
+安装其他发行版
+https://aka.ms/wslstore
+
+若出现错误：
+WslRegisterDistribution failed with error: 0x80370114
+情况一：微软 Windows Security 中需要配置：
+应用和浏览器控制 -> Exploit Protection 设置 -> “程序设置”页
+  -> 添加程序进行自定义 -> 选择准确的文件路径 -> C:\Windows\System32\vmcompute.exe
+选中新添加的文件，点“编辑”按钮，找到“控制流保护(CFG)”，取消勾选“替代系统设置”
+然后运行：net start vmcompute
+情况二：若无 vmcompute.exe 文件，需要卸载 Ubuntu，再重新安装。
+
+若出现错误：
+  WSL 正在完成升级…
+  更新失败(退出代码: 1603)。
+  Error code: Wsl/CallMsi/E_ABORT
+手动下载安装最新的正式版 wsl2 安装程序（如：wsl.2.0.12.0.x64.msi）
+
+显示已安装的发行版和wsl版本
+wsl -l -v
+
+更新已有的发行版到 WSL2
+wsl --set-version <Distro> 2
+
+启动
+wsl
+
+全部关闭（关闭 vmmem 进程）
+wsl --shutdown
+
+删除
+wslconfig /l
+wslconfig /u <Distro>
+
+自定义WSL2内存
+在用户目录下 %USERPROFILE% 创建 .wslconfig 文件，内容如下：
+[wsl2]
+memory=3GB
+swap=0
+localhostForwarding=true
+重启 WSL2 或 Docker 后可看见任务管理器中 Vmmem 内存占用。
+
+升级：
+wsl --update
+wsl --update --web-download  // --web-download 可选，指从互联网而不是 Microsoft 商店下载更新
+
+错误：Error: 0x800701bc WSL 2 ?????????????????? https://aka.ms/wsl2kernel
+wsl --update
+wsl --shutdown
+
+设置默认用户和添加用户
+~~~~~~~~
+https://www.tenforums.com/tutorials/128052-add-user-windows-subsystem-linux-wsl-distro-windows-10-a.html
+设置默认用户为 root，在CMD或POWERSHELL下输入：
+ubuntu config --default-user root
+添加用户 julia，在Ubuntu的Shell下输入：
+adduser julia
+按提示输入密码、个人信息等，最后一步输入y确认。
+然后将新用户添加到 sudo 组
+usermod -aG sudo julia
+最后回到CMD或POWERSHELL中再执行一次设置默认用户：
+ubuntu config --default-user julia
+
+更改root密码
+~~~~~~~~
+wsl -u root
+passwd root
+
+
+升级 Ubuntu 20.04 到 22.04 LTS
+~~~~~~~~
+sudo apt update
+sudo apt upgrade
+sudo apt dist-upgrade
+sudo apt install update-manager-core
+sudo vim /etc/update-manager/release-upgrades
+  Prompt=lts
+sudo do-release-upgrade -d
+...
+cat /etc/os-release
+
+Gnome Desktop
+~~~~~~~~
+sudo apt update
+sudo apt upgrade
+sudo apt install xfce4    # sudo apt install ubuntu-desktop gnome 注：22.04未成功加载 gnome
+
+Windows 中安装图形服务端 vcxsrv
+https://sourceforge.net/projects/vcxsrv/files/vcxsrv/1.20.14.0/vcxsrv-64.1.20.14.0.installer.exe/download
+配置：One large window, Start no client, Disable access control
+
+在 .bashrc 或 .zshrc 配置图形环境变量（如：DISPLAY=172.17.128.1:0.0）
+export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0.0
+export WAYLAND_DISPLAY=$DISPLAY
+# export LIBGL_ALWAYS_INDIRECT=1 注：与WAYLAND_DISPLAY互斥，且需要 sudo 启动桌面，不建议使用
+
+启动图形桌面
+startxfce4    # gnome-session

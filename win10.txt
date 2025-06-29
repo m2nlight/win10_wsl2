@@ -1,0 +1,318 @@
+﻿LTSC 2021 应用商店
+~~~~~~~~~
+wsreset -i
+
+BitLocker
+~~~~~~~~~
+https://docs.microsoft.com/zh-cn/windows/security/information-protection/bitlocker/bitlocker-use-bitlocker-drive-encryption-tools-to-manage-bitlocker
+支持的操作系统：win10 专业版、企业版、教育版
+锁定BitLocker加密的本地磁盘：
+manage-bde -lock -forcedismount F:
+
+共享文件防火墙端口
+~~~~~~~~~~~~~~~~
+TCP：139、445
+UDP：137、138
+建议从预定义或者允许应用通过防火墙：
+1.文件和打印机共享，勾选全部，允许。
+2.Netlogon 服务，勾选全部，允许。（TCP：445、RPC动态 %SystemRoot%\System32\lsass.exe）
+
+卸载补丁
+~~~~~~~
+假设要卸载 KB5000802
+wusa /uninstall /kb:5000802
+
+隐藏补丁
+~~~~~~~
+http://download.microsoft.com/download/F/2/2/F22D5FDB-59CD-4275-8C95-1BE17BF70B21/wushowhide.diagcab
+运行 wushowhide.diagcab，根据提示选择需要屏蔽的补丁。
+
+内存扫描
+~~~~~~~
+当出到BSOD：ATTEMPTED_WRITE_TO_READONLY_MEMORY 时，可用此工具对内存进行检查：
+在运行中输入：mdsched.exe
+
+代理
+~~~~
+1. IE代理：inetcpl.cpl 中配置，与系统设置的代理中配置效果一样。
+2. 设置微软APP的全局代理
+netsh winhttp import proxy source=ie
+或者手动
+netsh winhttp set proxy proxy-server="http://proxy:1080" bypass-list="<local>;*.your-bypass-domain.com"
+关闭代理
+netsh winhttp reset proxy
+显示和导出
+netsh winhttp show proxy
+netsh winhttp dump
+
+删除全部UWP
+~~~~~~~~~
+在管理员下的PowerShell中输入
+Get-AppxPackage | Remove-AppxPackage
+删除指定包
+Get-AppxPackage -AllUsers  // 查看 PackageFullName
+Remove-AppxPackage -AllUsers -Package "Microsoft.WindowsTerminal_1.12.10393.0_x64__8wekyb3d8bbwe"
+恢复应用商店
+Get-AppxPackage -AllUsers -Name Microsoft.WindowsStore // 查看 InstallLocation
+Add-AppxPackage -Register "C:\Program Files\WindowsApps\Microsoft.WindowsStore_11910.1002.5.0_x64__8wekyb3d8bbwe\AppxManifest.xml" -DisableDevelopmentMode
+
+删除预安装包
+~~~~~~~~~~
+dism /online /remove-provisionedappxpackage /packagename:Microsoft.WindowsTerminal_2022.209.135.0_neutral_~_8wekyb3d8bbwe
+恢复健康
+DISM.exe /Online /Cleanup-image /ScanHealth
+DISM.exe /Online /Cleanup-image /RestoreHealth /Source:E:\sources\install.wim /LimitAccess
+其中 /Source:E:\install.wim /LimitAccess 表示使用本地映像，不用 Windows Update 联网方式修复。
+
+
+win10en
+~~~~~~~
+安装中文语言包：
+1. 载入SW_DVD5_NTRL_Win_10_1607_32_64_MultiLang_LangPackAll_LIP_X21-05987.ISO
+2. 打开语言安装向导：在运行中输入 lpksetup
+3. 点击 Install display languages -> Browse... -> 浏览虚拟光驱中的简体中文cab文件
+   （如：F:\x64\langpacks\Microsoft-Windows-Client-Language-Pack_x64_zh-cn.cab）
+   列表中会识别出：Chinese （Simplified)(中文(简体)) MUI 160MB
+   点Next -> I accept the license terms. -> Next ... 等待安装完成。
+
+解决Antimalware Service Executable CPU，内存占用高的问题
+1.win键+R键打开运行对话框框，输入gpedit.msc打开本地组策略编辑器（组策略）；
+2。依次打开计算机配置-管理模板-Windows组件-Windows Defender；
+3。如果要关闭Windows defender，则将“关闭 Windows Defender”项设置为“已启用”即可。
+4。如果要保留Windows defender，只解决CPU占用和内存占用高的问题，则继续下列步骤；
+5。打开“实时保护”，将里面的“不论何时启动实时保护，都会启动进程扫描”这一配置项设置为“已禁用”（此步骤最关键）；
+6。打开“扫描”，将里面的以下几项设置为“已禁用”：
+（1）指定每天进行快速扫描的时间间隔；
+（2）仅当计算机处于打开但未使用状态才启动计划扫描；
+（3）指定每天进行快速扫描的时间；
+（4）指定每天的不同时间运行计划扫描；
+（5）指定每周的不同时间运行计划扫描”设置为“从不”，并设置为“已启用”
+
+
+TCP Config
+~~~~~~~~~~
+禁用 Receive Window Auto-Tuning Level（接收窗口自动调节级别）
+1. 查看
+C:\> netsh interface tcp show global
+如果看见下面就是启用了（Vista/7默认是关闭的）。
+Receive Window Auto-Tuning Level    : normal
+或者
+接收窗口自动调节级别    : normal
+2. 禁用
+C:\> netsh interface tcp set global autotuninglevel=disabled
+重启电脑生效。
+3. 重新启用
+C:\> netsh interface tcp set global autotuninglevel=normal
+
+
+.NET Framework 3.5
+~~~~~~~~~~~~~~~~~~
+离线安装.NET Framework 3.5
+1. 载入Win10镜像，假设为 L: 盘
+2. 管理员的CMD里
+C:\> dism /online /enable-feature /all /featurename:NetFX3 /Source:L:\sources\sxs
+
+
+计划任务
+~~~~~~~~
+禁用compatterlrunner.exe（开机硬盘狂转问题之一）
+打开计算机管理-系统工具-任务计划程序-任务计划程序库-Microsoft-Windows-Application Experience
+右键Microsoft Compatibility Appraiser，禁用。
+
+
+更新失败
+~~~~~~~~
+net stop wuauserv
+del /s /q /f %windir%\SoftwareDistribution\Download\*.*
+del /s /q /f %windir%\SoftwareDistribution\DataStore\*.*
+net start wuauserv
+start ms-settings:windowsupdate
+
+
+禁用Windows Defender
+~~~~~~~~~~~~~~~~~~~~
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /d 1 /t REG_DWORD /f
+reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableRoutinelyTakingAction" /d 1 /t REG_DWORD /f
+
+
+禁用Hyper-V启动
+~~~~~~~~~~~~~~~
+管理员的CMD：
+C:\> bcdedit /copy {current} /d "Windows 10 without Hyper-V"
+已将该项成功复制到 {3111a647-65d1-11e6-8b9a-d4bed9c6316a}。
+C:\> bcdedit /set {3111a647-65d1-11e6-8b9a-d4bed9c6316a} hypervisorlaunchtype off
+注：hypervisorlaunchtype默认是auto，不是off。
+
+禁用休眠
+~~~~~~~
+powercfg -h off
+
+REFS（可能无效）
+~~~~
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\MiniNT" /v "AllowRefsFormatOverNonmirrorVolume" /d 1 /t REG_DWORD /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v "RefsDisableLastAccessUpdate" /d 1 /t REG_DWORD /f
+format z: /u /fs:refs /i:enable
+reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\MiniNT" /f
+reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v "RefsDisableLastAccessUpdate" /f
+
+WSL
+~~~
+https://github.com/microsoft/wsl/releases
+执行 wsl2 安装程序后，在 PowerShell 运行
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+（也可在添加删除组件中勾选 Windows Subsystem for Linux）
+
+安装 Ubuntu
+wsl --install -d Ubuntu
+进入 Ubuntu
+sudo apt update && sudo apt upgrade
+其他常用命令
+# wsl -l -o 显示列表
+# wsl --shutdown 彻底关闭 wsl
+
+用zsh代替bash
+sudo apt update
+sudo apt install zsh -y
+chsh -s /usr/bin/zsh
+
+安装oh-my-zsh，国内镜像源
+git clone https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git
+REMOTE=https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git sh install.sh
+从国外源切换到国内镜像源
+git -C $ZSH remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git
+git -C $ZSH pull
+国外源直接安装
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+或
+sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
+sh -c "$(wget -O- https://install.ohmyz.sh/)"
+	
+// plugins
+git clone https://github.com/zsh-users/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
+git clone https://github.com/zsh-users/zsh-completions
+git clone https://github.com/romkatv/powerlevel10k.git
+# cd /mnt/c/Users/Bob/Desktop
+mv zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+mv zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+mv zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions
+mv powerlevel10k ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
+开发工具
+sudo apt update
+sudo apt install git git-lfs git-extras curl wget unzip p7zip unrar
+sudo apt install ripgrep gawk ack bat fzf htop ncdu tldr autojump prettyping
+sudo apt install silversearcher-ag fd-find
+sudo apt install build-essential cmake
+sudo apt autoremove
+配置
+vim ~/.zshrc
+plugins=(git git-extras fzf autojump sudo history cp rsync zsh-autosuggestions zsh-syntax-highlighting)
+# ZSH_THEME="ys"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+重新配置 powerlevel10k
+p10k configure
+
+追加配置 vim ~/.zshrc
+function 7zz() {
+    # compress a direcotry to directory.7z
+    # usage: 7zz path/to/directory [7z options]
+    # returns: 0 - successful, 1 - argument error, 2 - not found 7z command
+    local ok=$(command -v 7z >/dev/null 2>/dev/null && echo 'ok' || echo '')
+    if [ "$ok" != "ok" ]; then
+        echo 'not found 7z command, please install p7zip'
+        return 2
+    fi
+
+    local dir="$1"
+    local target="$(basename ${dir%/}.7z)"
+    if [ ! -d "$dir" ]; then
+        echo 'argument error\nusage: 7zz path/to/directory [7z options]'
+        return 1
+    fi
+    if [ -f "$target" ]; then
+        while true; do
+            printf "Are you sure overwrite file \"$target\"? [y/N] "
+            read yn
+            case $yn in
+            [yY][eE][sS] | [yY]) break ;;
+            [nN][oO] | [nN] | "") return 0 ;;
+            *) ;;
+            esac
+        done
+        rm -f "$target"
+    fi
+
+    shift
+    7z a -mx=9 -xr\!.DS_Store "$@" "$target" "$dir"
+}
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+alias ping='prettyping --nolegend'
+#alias bat='bat --theme=OneHalfDark'
+alias bat='batcat --theme=OneHalfDark'
+alias preview="fzf --preview 'batcat --theme=OneHalfDark --color \"always\" {}'"
+export FZF_DEFAULT_OPTS="--bind='ctrl-o:execute(code {})+abort'"
+alias du="ncdu --color dark -x --exclude .git --exclude node_modules"
+export GPG_TTY=$(tty)
+alias help='tldr'
+#export LANG=en_US.UTF-8
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+-- 旧的 --
+仓库
+cat /etc/os-release
+sudo vim /etc/apt/sources.list
+sudo apt update
+
+建议用 chsh -s /usr/bin/zsh 代替
+	vim ~/.bashrc
+	在开头输入：
+	if [ -t 1 ]; then
+		exec zsh
+	fi
+	exit
+	以后运行bash会自动打开zsh
+
+查看挂载分区
+cat /proc/mounts
+
+WSL 安装图形界面
+
+参考：https://github.com/Microsoft/WSL/issues/637
+
+安装组件
+
+1. win10 上安装 Xming
+   https://sourceforge.net/projects/xming/
+   https://jaist.dl.sourceforge.net/project/xming/Xming/6.9.0.31/Xming-6-9-0-31-setup.exe
+   
+2. Bash 安装 Xfce 4
+   sudo apt-get update
+   sudo apt install xfce4
+   vim ~/.bashrc
+   在开始位置加入：
+   export DISPLAY=localhost:0
+   保存退出后，退出bash
+
+启动步骤
+
+1. 启动Xming
+   选择 One large window
+   Display number 默认是0
+   其他默认即可。会出现一个空窗口。
+2. 启动bash
+   startxfce4
+3. 退出xfce4时候，注销，bash即可返回提示符。
+
+------------------------
+
+Gnome
+
+sudo apt-get install ubuntu-gnome-desktop
+
+启动
+startx
+
+退出图形桌面
+ctrl + alt + backspace 
