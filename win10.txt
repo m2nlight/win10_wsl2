@@ -177,7 +177,7 @@ chsh -s /usr/bin/zsh
 
 安装oh-my-zsh，国内镜像源
 git clone https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git
-REMOTE=https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git sh install.sh
+REMOTE=https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git sh ohmyzsh/tools/install.sh
 从国外源切换到国内镜像源
 git -C $ZSH remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/ohmyzsh.git
 git -C $ZSH pull
